@@ -6,86 +6,107 @@
       *
        01 WS-APPLID-AOR    PIC X(08) VALUE SPACES.
        01 WS-NETNAME-TOR   PIC X(08) VALUE SPACES.
-       01 WS-MSG-OUT       PIC X(80) VALUE SPACES.
-       01 WS-MSG-LEN       PIC S9(04) COMP VALUE 80.
-       01 WS-LINHA1        PIC X(40) VALUE SPACES.
-       01 WS-LINHA2        PIC X(40) VALUE SPACES.
-       01 WS-LINHA3        PIC X(40) VALUE SPACES.
-       01 WS-TAM-L1        PIC S9(04) COMP VALUE 0.
-       01 WS-TAM-L2        PIC S9(04) COMP VALUE 0.
-       01 WS-TAM-L3        PIC S9(04) COMP VALUE 0.
-       01 WS-CRLF          PIC X(01) VALUE X'0D'.
+       01 WS-ABSTIME       PIC S9(15) COMP-3.
       *
+       01 WS-USER-INPUT    PIC X(01) VALUE SPACE.
+       01 WS-INPUT-LEN     PIC S9(04) COMP VALUE 1.
+       01 WS-MSG           PIC X(80) VALUE SPACES.
+      *
+       01 WS-DATA          PIC X(10) VALUE SPACES.
+       01 WS-HORA          PIC X(08) VALUE SPACES.
+       01 WS-MILLISEC-BIN  PIC S9(8) COMP.
+       01 WS-MILLISEC      PIC 999.
+      *
+       01 WS-BORDA         PIC X(44) VALUE ALL '-'.
+       01 WS-TELA.
+          05 FILLER         PIC X(80) VALUE SPACES.
+          05 WS-LINHA1      PIC X(80) VALUE SPACES.
+          05 WS-INICIO      PIC X(80) VALUE SPACES.
+          05 WS-LINHA3      PIC X(80) VALUE SPACES.
+          05 FILLER         PIC X(80) VALUE SPACES.
+          05 WS-LINHA-AOR   PIC X(80) VALUE SPACES.
+          05 WS-LINHA-TOR   PIC X(80) VALUE SPACES.
+          05 FILLER         PIC X(80) VALUE SPACES.
+          05 WS-LINHA8      PIC X(80) VALUE SPACES.
+          05 WS-FIM         PIC X(80) VALUE SPACES.
+          05 WS-LINHA9      PIC X(80) VALUE SPACES.
+          05 FILLER         PIC X(80) VALUE SPACES.
+      *
+       01 WS-TELA-LEN      PIC S9(04) COMP VALUE 900.
+      *===============================================
        PROCEDURE DIVISION.
        MAIN-PARA.
+           PERFORM PEGA-DATA-HORA.
+
+           MOVE WS-BORDA     TO WS-LINHA1.
+           MOVE WS-BORDA     TO WS-LINHA3.
+           MOVE WS-BORDA     TO WS-LINHA8.
+           MOVE WS-BORDA     TO WS-LINHA9.
+
            EXEC CICS ASSIGN
                 APPLID(WS-APPLID-AOR)
            END-EXEC.
-      *
+
            EXEC CICS ASSIGN
                 NETNAME(WS-NETNAME-TOR)
            END-EXEC.
 
-      *
-           STRING 'OLA MUNDO CICS$' DELIMITED BY SIZE
-                  WS-CRLF DELIMITED BY SIZE
-             INTO WS-LINHA1
+           STRING ' HELLO CICS INICIO ' DELIMITED BY SIZE
+                  WS-DATA ' ' DELIMITED BY SIZE
+                  WS-HORA '.' DELIMITED BY SIZE
+                  WS-MILLISEC DELIMITED BY SIZE
+             INTO WS-INICIO
            END-STRING.
-           MOVE 17 TO WS-TAM-L1
 
-           STRING 'EXECUTANDO NO: ' DELIMITED BY SIZE
-                  WS-APPLID-AOR DELIMITED BY SIZE
-                  WS-CRLF DELIMITED BY SIZE
-             INTO WS-LINHA2
+           STRING '  EXECUTANDO NO: ' DELIMITED BY SIZE
+                   WS-APPLID-AOR DELIMITED BY SIZE
+             INTO WS-LINHA-AOR
            END-STRING.
-           MOVE 25 TO WS-TAM-L2
 
-           STRING 'CHAMADO POR: ' DELIMITED BY SIZE
+           STRING '    CHAMADO POR: ' DELIMITED BY SIZE
                   WS-NETNAME-TOR DELIMITED BY SIZE
-                  WS-CRLF DELIMITED BY SIZE
-             INTO WS-LINHA3
-           MOVE 22 TO WS-TAM-L3
+             INTO WS-LINHA-TOR
+           END-STRING.
 
-           EXEC CICS SEND TEXT
-                FROM(WS-LINHA1)
-                LENGTH(WS-TAM-L1)
+           PERFORM PEGA-DATA-HORA.
+
+           STRING ' HELLO CICS FIM    ' DELIMITED BY SIZE
+                  WS-DATA ' ' DELIMITED BY SIZE
+                  WS-HORA '.' DELIMITED BY SIZE
+                  WS-MILLISEC DELIMITED BY SIZE
+             INTO WS-FIM
+           END-STRING.
+
+           EXEC CICS SEND
+                FROM(WS-TELA)
+                LENGTH(WS-TELA-LEN)
                 ERASE
-                ACCUM
            END-EXEC.
 
-           EXEC CICS SEND TEXT
-                FROM(WS-LINHA2)
-                LENGTH(WS-TAM-L2)
-                ACCUM
-           END-EXEC.
-
-           EXEC CICS SEND TEXT
-                FROM(WS-LINHA3)
-                LENGTH(WS-TAM-L3)
-                ACCUM
-           END-EXEC.
-
-           EXEC CICS SEND PAGE
-           END-EXEC.
-
-      *
-      *    STRING 'OLA MUNDO CICS#' DELIMITED BY SIZE
-      *           WS-NL DELIMITED BY SIZE
-      *           ' EXECUTANDO NO: ' DELIMITED BY SIZE
-      *           WS-APPLID-AOR DELIMITED BY SPACE
-      *           WS-NL DELIMITED BY SIZE
-      *           ' CHAMADO POR: ' DELIMITED BY SIZE
-      *           WS-NETNAME-TOR DELIMITED BY SPACE
-      *      INTO WS-MSG-OUT
-      *    END-STRING.
-      *
-      *    EXEC CICS SEND
-      *         FROM(WS-MSG-OUT)
-      *         LENGTH(WS-MSG-LEN)
-      *         ERASE
-      *    END-EXEC.
-      *
            EXEC CICS RETURN
            END-EXEC.
+
+      *========================================================
+       PEGA-DATA-HORA.
+
+           EXEC CICS ASKTIME
+                ABSTIME(WS-ABSTIME)
+           END-EXEC.
+
+           EXEC CICS FORMATTIME
+                ABSTIME(WS-ABSTIME)
+                DDMMYYYY(WS-DATA)
+                DATESEP('/')
+           END-EXEC.
+
+           EXEC CICS FORMATTIME
+                ABSTIME(WS-ABSTIME)
+                TIME(WS-HORA)
+                TIMESEP(':')
+                MILLISECONDS(WS-MILLISEC-BIN)
+           END-EXEC.
+
+           MOVE WS-MILLISEC-BIN TO WS-MILLISEC
+           EXIT.
       *
        END PROGRAM HELLOCIC.
